@@ -236,8 +236,10 @@ MAC: 02:42:55:d5:c8:7f  —  br-5abcc0f65712 (10.99.1.254)
                                                   └─────────────┘
 ```
 
-#img("DC.png")
-
+#figure(
+  image("DC.png", width: 100%),
+  caption: [ Contenedores],
+) 
 === Justificación técnica de la topología
 
 La separación en dos redes bridge es necesaria por dos razones:
@@ -348,25 +350,11 @@ a la red del hipervisor y no al segmento Docker donde circula el tráfico ARP.
 
 == Evidencias de la detección
 
-#img("Screenshot: terminal del IDS mostrando alerta Firma 1 — MAC-IP incongruente")
+#figure(
+  image("EvidenciaSpoofing.png", width: 100%),
+  caption: [ Evidencia],
+) 
 
-#img("Screenshot: terminal del IDS mostrando alerta Firma 3 — Reply no solicitado")
-
-La salida del IDS durante el ataque muestra:
-
-```
-[15:01:02] ✔  Nueva entrada ARP: 10.99.1.1 → 02:42:0a:63:01:01
-[15:01:04] ✔  Nueva entrada ARP: 10.99.1.10 → 02:42:0a:63:01:0a
-[15:01:05] ⚠  ALERTA — Firma 1: MAC-IP INCONGRUENTE
-  IP      : 10.99.1.1
-  MAC prev: 02:42:0a:63:01:01
-  MAC nueva: 02:42:55:d5:c8:7f  ← SOSPECHOSA
-  Posible atacante realizando ARP Spoofing / MITM
-
-[15:01:05] ⚠  ALERTA — Firma 3: REPLY NO SOLICITADO
-  02:42:55:d5:c8:7f envía ARP reply para 10.99.1.10
-  sin que exista ningún ARP request previo registrado.
-```
 
 #pagebreak()
 
@@ -420,7 +408,10 @@ dns_net — 172.20.0.0/24
 └─────────────────┘
 ```
 
-#img("Screenshot: docker-compose ps — contenedores DNS en estado Up")
+#figure(
+  image("DC2.png", width: 100%),
+  caption: [Contenedores],
+)
 
 === Configuración del servidor DNS (BIND9)
 
@@ -518,9 +509,16 @@ todos los umbrales del IDS.
 
 == Evidencias de la detección
 
-#img("Screenshot: salida del generador — Fase 1 NOERROR, Fase 2 NXDOMAIN")
+#figure(
+  image("Snooping1.png", width: 100%),
+  caption: [Evidencia],
+)
 
-#img("Screenshot: alertas del IDS — Firma 1 y Firma 2 disparadas")
+#figure(
+  image("Snooping2.png", width: 100%),
+  caption: [Ataque],
+)
+
 
 Salida esperada del IDS durante la Fase 2:
 
