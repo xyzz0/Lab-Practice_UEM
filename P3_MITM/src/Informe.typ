@@ -302,7 +302,10 @@ El ataque se lanza en dos hilos simultáneos:
 - *Hilo 2:* dice al router (`10.99.1.1`) que la víctima (`10.99.1.10`) tiene
   la MAC del atacante.
 
-#img("Screenshot: salida de ataque_arp.py mostrando los dos hilos activos")
+#figure(
+  image("Ataque1.png", width: 100%),
+  caption: [Ataque],
+) 
 
 == Sistema de detección: `alert_arpspoof`
 
