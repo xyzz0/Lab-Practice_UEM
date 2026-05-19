@@ -1,0 +1,49 @@
+networks:
+  lan_interna:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.99.1.0/24
+          gateway: 10.99.1.254
+  lan_externa:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.99.2.0/24
+          gateway: 10.99.2.254
+
+services:
+  victima:
+    image: python:3.11-slim
+    container_name: victima
+    hostname: victima
+    networks:
+      lan_interna:
+        ipv4_address: 10.99.1.10
+    cap_add: [NET_ADMIN, NET_RAW]
+    command: bash -c "pip install scapy -q && sleep infinity"
+
+  router:
+    image: python:3.11-slim
+    container_name: router
+    hostname: router
+    networks:
+      lan_interna:
+        ipv4_address: 10.99.1.1
+      lan_externa:
+        ipv4_address: 10.99.2.1
+    cap_add: [NET_ADMIN, NET_RAW]
+    sysctls:
+      - net.ipv4.ip_forward=1
+    command: bash -c "pip install scapy -q && sleep infinity"
+
+  servidor_web:
+    image: python:3.11-slim
+    container_name: servidor_web
+    hostname: servidor_web
+    networks:
+      lan_externa:
+        ipv4_address: 10.99.2.20
+    command: bash -c "python3 -m http.server 80"

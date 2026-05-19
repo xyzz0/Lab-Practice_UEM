@@ -1,0 +1,61 @@
+version: "3.9"
+
+networks:
+  dns_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+services:
+
+  dns_server:
+    image: internetsystemsconsortium/bind9:9.18
+    container_name: dns_server
+    hostname: dns_server
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.10
+    volumes:
+      - ./bind/named.conf:/etc/bind/named.conf:ro
+      - ./bind/db.practica.local:/etc/bind/db.practica.local:ro
+    ports:
+      - "5354:53/udp"
+      - "5354:53/tcp"
+
+  dns_resolver:
+    image: python:3.11-slim
+    container_name: dns_resolver
+    hostname: dns_resolver
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.20
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./:/practica
+    command: >
+      bash -c "apt-get update -qq && apt-get install -y -q libpcap-dev && pip install scapy -q &&
+               python3 /practica/detector_dns.py"
+    depends_on:
+      - dns_server
+
+  atacante_dns:
+    image: python:3.11-slim
+    container_name: atacante_dns
+    hostname: atacante_dns
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.99
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./:/practica
+    command: >
+      bash -c "apt-get update -qq && apt-get install -y -q libpcap-dev && pip install scapy -q && sleep 5 &&
+               python3 /practica/generador_dns.py"
+    depends_on:
+      - dns_resolver
+      - dns_server
