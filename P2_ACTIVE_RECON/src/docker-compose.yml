@@ -1,0 +1,28 @@
+services:
+  # Host multi-servicio (SSH + HTTP) -> objetivo del escaneo de puertos (Parte 2)
+  target:
+    build:
+      context: .
+      dockerfile: Dockerfile.target
+    container_name: lab-target
+    cap_add: [NET_ADMIN]          # necesario para la demo opcional de puerto "filtrado"
+    networks:
+      labnet:
+        ipv4_address: 172.28.0.10
+
+  # Host solo-web -> segundo host activo para el host discovery (Parte 1)
+  web:
+    image: nginx:alpine
+    container_name: lab-web
+    networks:
+      labnet:
+        ipv4_address: 172.28.0.20
+
+# La IP 172.28.0.99 queda LIBRE a propósito -> caso "host inactivo" de la Parte 1
+networks:
+  labnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+

@@ -1,0 +1,10 @@
+FROM alpine:3.19
+
+RUN apk add --no-cache openssh nginx && \
+    ssh-keygen -A && \
+    adduser -D lab && echo "lab:lab123" | chpasswd && \
+    mkdir -p /run/nginx
+EXPOSE 22 80
+
+CMD ["/bin/sh", "-c", "/usr/sbin/sshd && nginx -g 'daemon off;'"]
+
