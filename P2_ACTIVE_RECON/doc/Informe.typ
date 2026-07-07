@@ -209,87 +209,6 @@ vivo:
 En los tres casos, cualquier respuesta delata la IP del emisor en el campo
 `respuesta.src`, que es justo lo que recolecta la función auxiliar `hosts_activos`.
 
-```python
-#!/usr/bin/env python3
-"""
-Host discovery con Scapy usando UDP, TCP (ACK) e ICMP (timestamp).
-Requiere privilegios de root para enviar paquetes en crudo (sudo).
-"""
-from scapy.all import IP, TCP, UDP, ICMP, sr
-
-PROTOS_VALIDOS = {"UDP", "TCP", "ICMP"}
-
-
-def craft_discovery_pkts(protocolos, objetivos, num_pkts=None, puerto=80):
-    """
-    Construye paquetes de host discovery y los devuelve en una lista.
-
-    protocolos : str o lista de str  -> "TCP", "UDP", "ICMP" (hasta 3)  [obligatorio]
-    objetivos  : str o rango scapy   -> "192.168.1.1", "10.0.0.0/24"    [obligatorio]
-    num_pkts   : dict opcional       -> {"TCP": 2, "UDP": 1}; por defecto 1 de cada
-    puerto     : int opcional        -> puerto L4 para TCP/UDP (defecto 80)
-    """
-    # Normalizar protocolos a lista de mayúsculas (acepta str o lista)
-    if isinstance(protocolos, str):
-        protocolos = [protocolos]
-    protocolos = [p.upper() for p in protocolos]
-
-    for p in protocolos:
-        if p not in PROTOS_VALIDOS:
-            raise ValueError(f"Protocolo no válido: {p} (usa {PROTOS_VALIDOS})")
-
-    if num_pkts is None:
-        num_pkts = {}
-
-    paquetes = []
-    for proto in protocolos:
-        cantidad = num_pkts.get(proto, 1)          # si falta la clave -> 1 paquete
-        for _ in range(cantidad):
-            if proto == "ICMP":
-                # type=13 -> ICMP Timestamp Request (respuesta viva = type 14)
-                pkt = IP(dst=objetivos) / ICMP(type=13)
-            elif proto == "TCP":
-                # flags="A" -> ACK; un host vivo responde con RST
-                pkt = IP(dst=objetivos) / TCP(dport=puerto, flags="A")
-            else:  # UDP
-                # puerto cerrado -> ICMP port-unreachable = host vivo
-                pkt = IP(dst=objetivos) / UDP(dport=puerto)
-            paquetes.append(pkt)
-    return paquetes
-
-
-def hosts_activos(respuestas):
-    """Extrae el conjunto de IPs que han respondido (host vivo)."""
-    return {recibido.src for _, recibido in respuestas}
-
-
-if __name__ == "__main__":
-    # --- AJUSTA estas IPs a tu red/laboratorio ---
-    HOST_ACTIVO   = "172.28.0.10"   # p.ej. tu gateway o una VM que sabes viva
-    HOST_INACTIVO = "172.28.0.99"   # IP libre del subnet: sin host garantizado
-
-    # 1) Envío con los 3 protocolos a un host que debería estar activo
-    pkts_vivo = craft_discovery_pkts(
-        ["ICMP", "TCP", "UDP"], HOST_ACTIVO,
-        num_pkts={"ICMP": 1, "TCP": 1, "UDP": 1}, puerto=80,
-    )
-
-    # 2) Envío (solo ICMP, como str) a una IP sin host activo
-    pkts_muerto = craft_discovery_pkts("ICMP", HOST_INACTIVO)
-
-    todos = pkts_vivo + pkts_muerto
-    print(f"[*] Enviando {len(todos)} paquetes...")
-
-    ans, unans = sr(todos, timeout=2, verbose=0)
-
-    activos = hosts_activos(ans)
-    print(f"[+] Hosts activos detectados: {len(activos)}")
-    for ip in sorted(activos):
-        print(f"    {ip}")
-
-    if not activos:
-        print("[-] Nadie respondió (¿firewall, permisos root o ICMP filtrado?)")
-```
 
 === Entorno de pruebas
 
@@ -312,28 +231,6 @@ multi-servicio (`lab-target`) es una imagen mínima de Alpine que levanta `sshd`
   ),
   caption: [Topología del laboratorio de contenedores.],
 )
-
-```yaml
-services:
-  # Host multi-servicio (SSH + HTTP) -> objetivo del escaneo de puertos (Parte 2)
-  target:
-    build: { context: ., dockerfile: Dockerfile.target }
-    container_name: lab-target
-    cap_add: [NET_ADMIN]
-    networks: { labnet: { ipv4_address: 172.28.0.10 } }
-
-  # Host solo-web -> segundo host activo para el host discovery (Parte 1)
-  web:
-    image: nginx:alpine
-    container_name: lab-web
-    networks: { labnet: { ipv4_address: 172.28.0.20 } }
-
-# La IP 172.28.0.99 queda LIBRE a propósito -> caso "host inactivo"
-networks:
-  labnet:
-    driver: bridge
-    ipam: { config: [{ subnet: 172.28.0.0/24 }] }
-```
 
 == Comportamiento por defecto de nmap y estado de puertos
 
@@ -506,11 +403,9 @@ estándar de la industria.
 
 La gran diferencia es la calidad de los escaneos, en uno más personalizado generamos una cantidad de ruido bastante menor la cual es adaptada al contexto y al entorno, sin embargo mediante el uso de herramientas como NMAP, el uso general genera una cantidad excesiva de tráfico, ruido y escaneos innecesarios los cuales pueden llegar a ser desconocidos para alguien inexperto y causar complicaciones o problemas.
 
-#pagebreak()
 
-// ─────────────────────────────────────────────────────────────────────────────
+#v(5em)
 = Bibliografía
-// ─────────────────────────────────────────────────────────────────────────────
 #v(0.3cm)
 #set par(justify: false)
 
